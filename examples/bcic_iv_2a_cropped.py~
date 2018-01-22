@@ -23,8 +23,8 @@ from braindecode.torch_ext.constraints import MaxNormDefaultConstraint
 from braindecode.torch_ext.util import set_random_seeds, np_to_var
 from braindecode.mne_ext.signalproc import mne_apply
 from braindecode.datautil.signalproc import (bandpass_cnt,
-#                                             exponential_running_standardize)
-#from braindecode.datautil.trial_segment import create_signal_target_from_raw_mne
+                                             exponential_running_standardize)
+from braindecode.datautil.trial_segment import create_signal_target_from_raw_mne
 
 log = logging.getLogger(__name__)
 

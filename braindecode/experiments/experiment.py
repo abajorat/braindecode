@@ -163,6 +163,8 @@ class Experiment(object):
             self.datasets.pop('valid')
             assert run_after_early_stop == False
             assert do_early_stop == False
+        if test_set is None:
+            self.datasets.pop('test')
         self.iterator = iterator
         self.loss_function = loss_function
         self.optimizer = optimizer
@@ -368,13 +370,13 @@ class Experiment(object):
             result_dict = m.monitor_epoch()
             if result_dict is not None:
                 result_dicts_per_monitor[m].update(result_dict)
-	print('HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH')
-	print(datasets)
+        print('HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH')
+        print(datasets)
         for setname in datasets:
             assert setname in ['train', 'valid', 'test']
             dataset = datasets[setname]
             print('blaaaaa')
-	    print(dataset)
+            print(dataset)
 
             all_preds = []
             all_losses = []
