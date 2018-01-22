@@ -371,6 +371,7 @@ class Experiment(object):
         for setname in datasets:
             assert setname in ['train', 'valid', 'test']
             dataset = datasets[setname]
+            print(dataset)
             all_preds = []
             all_losses = []
             all_batch_sizes = []
