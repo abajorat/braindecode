@@ -31,18 +31,18 @@ log = logging.getLogger(__name__)
 
 def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
     train_filename = 'A{:02d}T.gdf'.format(subject_id)
-    test_filename = 'A{:02d}E.gdf'.format(subject_id)
+    # test_filename = 'A{:02d}E.gdf'.format(subject_id)
     train_filepath = os.path.join(data_folder, train_filename)
-    test_filepath = os.path.join(data_folder, test_filename)
+    # test_filepath = os.path.join(data_folder, test_filename)
     train_label_filepath = train_filepath.replace('.gdf', '.mat')
-    test_label_filepath = test_filepath.replace('.gdf', '.mat')
+    # test_label_filepath = test_filepath.replace('.gdf', '.mat')
 
     train_loader = BCICompetition4Set2A(
         train_filepath, labels_filename=train_label_filepath)
-    test_loader = BCICompetition4Set2A(
-        test_filepath, labels_filename=test_label_filepath)
+    # test_loader = BCICompetition4Set2A(
+        # test_filepath, labels_filename=test_label_filepath)
     train_cnt = train_loader.load()
-    test_cnt = test_loader.load()
+    # test_cnt = test_loader.load()
 
     # Preprocessing
 
@@ -61,26 +61,26 @@ def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
                                                   eps=1e-4).T,
         train_cnt)
 
-    test_cnt = test_cnt.drop_channels(['STI 014', 'EOG-left',
-                                       'EOG-central', 'EOG-right'])
-    assert len(test_cnt.ch_names) == 22
-    test_cnt = mne_apply(lambda a: a * 1e6, test_cnt)
-    test_cnt = mne_apply(
-        lambda a: bandpass_cnt(a, low_cut_hz, 38, test_cnt.info['sfreq'],
-                               filt_order=3,
-                               axis=1), test_cnt)
-    test_cnt = mne_apply(
-        lambda a: exponential_running_standardize(a.T, factor_new=1e-3,
-                                                  init_block_size=1000,
-                                                  eps=1e-4).T,
-        test_cnt)
+    # test_cnt = test_cnt.drop_channels(['STI 014', 'EOG-left',
+                                       # 'EOG-central', 'EOG-right'])
+    # assert len(test_cnt.ch_names) == 22
+    # test_cnt = mne_apply(lambda a: a * 1e6, test_cnt)
+    # test_cnt = mne_apply(
+        # lambda a: bandpass_cnt(a, low_cut_hz, 38, test_cnt.info['sfreq'],
+                               # filt_order=3,
+                               # axis=1), test_cnt)
+    # test_cnt = mne_apply(
+        # lambda a: exponential_running_standardize(a.T, factor_new=1e-3,
+                                                  # init_block_size=1000,
+                                                  # eps=1e-4).T,
+        # test_cnt)
 
     marker_def = OrderedDict([('Left Hand', [1]), ('Right Hand', [2],),
                               ('Foot', [3]), ('Tongue', [4])])
     ival = [-500, 4000]
 
     train_set = create_signal_target_from_raw_mne(train_cnt, marker_def, ival)
-    test_set = create_signal_target_from_raw_mne(test_cnt, marker_def, ival)
+    # test_set = create_signal_target_from_raw_mne(test_cnt, marker_def, ival)
 
     train_set, valid_set = split_into_two_sets(train_set,
                                                first_set_fraction=0.8)
@@ -128,7 +128,7 @@ def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
     loss_function = lambda preds, targets: F.nll_loss(
         th.mean(preds, dim=2, keepdim=False), targets)
 
-    exp = Experiment(model, train_set, valid_set, test_set, iterator=iterator,
+    exp = Experiment(model, train_set, valid_set, None, iterator=iterator,
                      loss_function=loss_function, optimizer=optimizer,
                      model_constraint=model_constraint,
                      monitors=monitors,
@@ -142,7 +142,7 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s : %(message)s',
                         level=logging.DEBUG, stream=sys.stdout)
     # Should contain both .gdf files and .mat-labelfiles from competition
-    data_folder = '/home/schirrmr/data/bci-competition-iv/2a-gdf/'
+    data_folder = 'data/'
     subject_id = 1 # 1-9
     low_cut_hz = 4 # 0 or 4
     model = 'shallow' #'shallow' or 'deep'
