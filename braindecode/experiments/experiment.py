@@ -370,14 +370,9 @@ class Experiment(object):
             result_dict = m.monitor_epoch()
             if result_dict is not None:
                 result_dicts_per_monitor[m].update(result_dict)
-        print('HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH')
-        print(datasets)
         for setname in datasets:
             assert setname in ['train', 'valid', 'test']
             dataset = datasets[setname]
-            print('blaaaaa')
-            print(dataset)
-
             all_preds = []
             all_losses = []
             all_batch_sizes = []

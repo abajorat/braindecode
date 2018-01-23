@@ -116,7 +116,7 @@ def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
                                        input_time_length=input_time_length,
                                        n_preds_per_input=n_preds_per_input)
 
-    stop_criterion = Or([MaxEpochs(800),
+    stop_criterion = Or([MaxEpochs(5),
                          NoDecrease('valid_misclass', 80)])
 
     monitors = [LossMonitor(), MisclassMonitor(col_suffix='sample_misclass'),
