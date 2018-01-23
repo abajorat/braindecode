@@ -136,7 +136,7 @@ def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
                      remember_best_column='valid_misclass',
                      run_after_early_stop=True, cuda=cuda)
     exp.run()
-    print(exp.remember_best_column)
+    print(exp.rememberer.lowest_val)
     return exp
 
 if __name__ == '__main__':
