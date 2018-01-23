@@ -142,7 +142,8 @@ def train(config_space):
                      remember_best_column='valid_misclass',
                      run_after_early_stop=True, cuda=cuda)
     exp.run()
-    return exp, {"cost": exp.rememberer.lowest_val}
+    # return exp, {"cost": exp.rememberer.lowest_val}
+    return exp.rememberer.lowest_val
 
 def createCS():
     cs = CS.ConfigurationSpace()
