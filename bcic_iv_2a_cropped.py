@@ -25,11 +25,17 @@ from braindecode.mne_ext.signalproc import mne_apply
 from braindecode.datautil.signalproc import (bandpass_cnt,
                                              exponential_running_standardize)
 from braindecode.datautil.trial_segment import create_signal_target_from_raw_mne
-
+import ConfigSpace as CS
+from smac.facade.smac_facade import SMAC
+from smac.scenario.scenario import Scenario
 log = logging.getLogger(__name__)
 
 
-def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
+def preprocessing(data_folder, subject_id, low_cut_hz):
+    global train_set, test_set, valid_set, n_classes, n_chans
+    global n_iters, input_time_length
+    n_iters = 5
+# def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
     train_filename = 'A{:02d}T.gdf'.format(subject_id)
     test_filename = 'A{:02d}E.gdf'.format(subject_id)
     train_filepath = os.path.join(data_folder, train_filename)
@@ -43,9 +49,6 @@ def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
         test_filepath, labels_filename=test_label_filepath)
     train_cnt = train_loader.load()
     test_cnt = test_loader.load()
-
-    # Preprocessing
-
     train_cnt = train_cnt.drop_channels(['STI 014', 'EOG-left',
                                          'EOG-central', 'EOG-right'])
     assert len(train_cnt.ch_names) == 22
@@ -78,18 +81,21 @@ def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
     marker_def = OrderedDict([('Left Hand', [1]), ('Right Hand', [2],),
                               ('Foot', [3]), ('Tongue', [4])])
     ival = [-500, 4000]
-
     train_set = create_signal_target_from_raw_mne(train_cnt, marker_def, ival)
     test_set = create_signal_target_from_raw_mne(test_cnt, marker_def, ival)
 
     train_set, valid_set = split_into_two_sets(train_set,
                                                first_set_fraction=0.8)
-
     set_random_seeds(seed=20190706, cuda=cuda)
-
     n_classes = 4
     n_chans = int(train_set.X.shape[1])
     input_time_length=1000
+
+
+def train(config_space):
+    cuda = False
+    model = config_space['model']
+    print("Bla")
     if model == 'shallow':
         model = ShallowFBCSPNet(n_chans, n_classes, input_time_length=input_time_length,
                             final_conv_length=30).create_network()
@@ -116,7 +122,7 @@ def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
                                        input_time_length=input_time_length,
                                        n_preds_per_input=n_preds_per_input)
 
-    stop_criterion = Or([MaxEpochs(5),
+    stop_criterion = Or([MaxEpochs(2),
                          NoDecrease('valid_misclass', 80)])
 
     monitors = [LossMonitor(), MisclassMonitor(col_suffix='sample_misclass'),
@@ -136,18 +142,33 @@ def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
                      remember_best_column='valid_misclass',
                      run_after_early_stop=True, cuda=cuda)
     exp.run()
-    print(exp.rememberer.lowest_val)
-    return exp
+    return exp, {"cost": exp.rememberer.lowest_val}
+
+def createCS():
+    cs = CS.ConfigurationSpace()
+    model = CS.CategoricalHyperparameter("model", ['deep', 'shallow'])
+    cs.add_hyperparameter(model)
+    return cs
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s : %(message)s',
                         level=logging.DEBUG, stream=sys.stdout)
     # Should contain both .gdf files and .mat-labelfiles from competition
-    data_folder = '/home/bajorata/data/'
+    data_folder = '/home/andre/UniData/DL_EEG/data/2a/'
     subject_id = 1 # 1-9
     low_cut_hz = 4 # 0 or 4
     model = 'shallow' #'shallow' or 'deep'
     cuda = True
-    exp = run_exp(data_folder, subject_id, low_cut_hz, model, cuda)
-    log.info("Last 10 epochs")
-    log.info("\n" + str(exp.epochs_df.iloc[-10:]))
+    preprocessing(data_folder, subject_id, low_cut_hz)
+    cs = createCS()
+    scenario = Scenario({"run_obj": "quality",
+                         "runcount-limit": n_iters,
+                         "cs": cs,
+                         "deterministic": "true",
+                         "output_dir": ""})
+
+    smac = SMAC(scenario=scenario, tae_runner=train)
+    smac.optimize()
+    # exp = train(cs)
+    # log.info("Last 10 epochs")
+    # log.info("\n" + str(exp.epochs_df.iloc[-10:]))
