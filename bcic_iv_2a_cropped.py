@@ -125,7 +125,7 @@ def train(config):
                                        input_time_length=input_time_length,
                                        n_preds_per_input=n_preds_per_input)
 
-    stop_criterion = Or([MaxEpochs(2),
+    stop_criterion = Or([MaxEpochs(20),
                          NoDecrease('valid_misclass', 80)])
 
     monitors = [LossMonitor(), MisclassMonitor(col_suffix='sample_misclass'),
@@ -145,6 +145,7 @@ def train(config):
                      remember_best_column='valid_misclass',
                      run_after_early_stop=True, cuda=cuda)
     exp.run()
+    print(exp.rememberer)
     # return exp, {"cost": exp.rememberer.lowest_val}
     return exp.rememberer.lowest_val
 
@@ -191,13 +192,13 @@ if __name__ == '__main__':
             run_id='0',
             eta=2,  # defines downsampling rate
             min_budget=1,  # minimum number of epochs / minimum budget
-            max_budget=10,  # maximum number of epochs / maximum budget
+            max_budget=127,  # maximum number of epochs / maximum budget
             nameserver=nameserver,
             ns_port=ns,
             job_queue_sizes=(0, 1),
         )
         # runs one iteration if at least one worker is available
-        res = HB.run(10, min_n_workers=1)
+        res = HB.run(1, min_n_workers=1)
 
         # shutdown the worker and the dispatcher
         HB.shutdown(shutdown_workers=True)
