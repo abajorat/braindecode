@@ -25,7 +25,7 @@ class Deep4Net(object):
                  n_classes,
                  input_time_length,
                  final_conv_length,
-                 config_space,
+                 config,
                  n_filters_time=25,
                  n_filters_spat=25,
                  filter_time_length=10,
@@ -50,28 +50,28 @@ class Deep4Net(object):
                  batch_norm_alpha=0.1,
                  stride_before_pool=False,
                 ):
-        n_filters_time = config_space['n_filters_time']
-        n_filters_spat = config_space['n_filters_spat']
-        filter_time_length = config_space['filter_time_length']
-        pool_time_length = config_space['pool_time_length']
-        pool_time_stride = config_space['pool_time_stride']
-        n_filters_2 = config_space['n_filters_2']
-        n_filters_3 = config_space['n_filters_3']
-        n_filters_4 = config_space['n_filters_4']
-        filter_length_2 = config_space['filter_length_2']
-        filter_length_3 = config_space['filter_length_3']
-        filter_length_4 = config_space['filter_length_4']
-        first_nonlin = getattr(functional, config_space['first_nonlin'])
-        first_pool_mode = config_space['first_pool_mode']
-        first_pool_nonlin = getattr(functions, config_space['first_pool_nonlin'])
-        later_pool_mode = config_space['later_pool_mode']
-        later_nonlin = getattr(functional, config_space['later_nonlin'])
-        later_pool_nonlin = getattr(functions, config_space['later_pool_nonlin'])
-        drop_prob = config_space['drop_prob']
-        # split_first_layer = config_space['split_first_layer']
-        batch_norm = config_space['batch_norm']
-        batch_norm_alpha = config_space['batch_norm_alpha']
-        stride_before_pool = config_space['stride_before_pool']
+        n_filters_time = config['n_filters_time']
+        n_filters_spat = config['n_filters_spat']
+        filter_time_length = config['filter_time_length']
+        pool_time_length = config['pool_time_length']
+        pool_time_stride = config['pool_time_stride']
+        n_filters_2 = config['n_filters_2']
+        n_filters_3 = config['n_filters_3']
+        n_filters_4 = config['n_filters_4']
+        filter_length_2 = config['filter_length_2']
+        filter_length_3 = config['filter_length_3']
+        filter_length_4 = config['filter_length_4']
+        first_nonlin = getattr(functional, config['first_nonlin'])
+        first_pool_mode = config['first_pool_mode']
+        first_pool_nonlin = getattr(functions, config['first_pool_nonlin'])
+        later_pool_mode = config['later_pool_mode']
+        later_nonlin = getattr(functional, config['later_nonlin'])
+        later_pool_nonlin = getattr(functions, config['later_pool_nonlin'])
+        drop_prob = config['drop_prob']
+        split_first_layer = config['split_first_layer']
+        batch_norm = config['batch_norm']
+        batch_norm_alpha = config['batch_norm_alpha']
+        stride_before_pool = config['stride_before_pool']
         if final_conv_length == 'auto':
             assert input_time_length is not None
 

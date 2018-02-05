@@ -24,7 +24,9 @@ from braindecode.torch_ext.util import set_random_seeds, np_to_var
 from braindecode.mne_ext.signalproc import mne_apply
 from braindecode.datautil.signalproc import (bandpass_cnt,
                                              exponential_running_standardize)
-import hpbandster.distributed.utils
+from hpbandster.distributed import utils
+from hpbandster.config_generators import RandomSampling
+from hpbandster.HB_master import HpBandSter
 from hpbandster.distributed.worker import Worker
 from braindecode.datautil.trial_segment import create_signal_target_from_raw_mne
 import ConfigSpace as CS
@@ -94,16 +96,16 @@ def preprocessing(data_folder, subject_id, low_cut_hz):
     input_time_length=1000
 
 
-def train(config_space):
-    cuda = False
-    model = config_space['model']
+def train(config):
+    cuda = True
+    model = config['model']
 
     # if model == 'shallow':
         # model = ShallowFBCSPNet(n_chans, n_classes, input_time_length=input_time_length,
                             # final_conv_length=30).create_network()
     if model == 'deep':
         model = Deep4Net(n_chans, n_classes, input_time_length=input_time_length,
-                            final_conv_length=2, config_space=config_space).create_network()
+                            final_conv_length=2, config=config).create_network()
 
     to_dense_prediction_model(model)
     if cuda:
@@ -146,15 +148,11 @@ def train(config_space):
     # return exp, {"cost": exp.rememberer.lowest_val}
     return exp.rememberer.lowest_val
 
-def createCS():
-    cs = CS.ConfigurationSpace()
-    model = CS.CategoricalHyperparameter("model", ['deep', 'shallow'])
-    cs.add_hyperparameter(model)
-    return cs
 
 class WorkerWrapper(Worker):
     def compute(self, config, budget, *args, **kwargs):
-        loss = train(cs)
+        cfg = CS.Configuration(cs, values=config)
+        loss = train(cfg)
 
         return ({
             'loss': loss}
@@ -163,10 +161,9 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s : %(message)s',
                         level=logging.DEBUG, stream=sys.stdout)
     # Should contain both .gdf files and .mat-labelfiles from competition
-    data_folder = '/home/andre/UniData/DL_EEG/data/2a/'
+    data_folder = '/home/andresp/braindecode/data/'
     subject_id = 1 # 1-9
     low_cut_hz = 4 # 0 or 4
-    model = 'shallow' #'shallow' or 'deep'
     cuda = True
     preprocessing(data_folder, subject_id, low_cut_hz)
     cs = cs.create_config_space()
@@ -180,21 +177,21 @@ if __name__ == '__main__':
         smac = SMAC(scenario=scenario, tae_runner=train)
         smac.optimize()
     else:
-        nameserver, ns = hpbandster.distributed.utils.start_local_nameserver()
+        nameserver, ns = utils.start_local_nameserver()
 
         # starting the worker in a separate thread
         w = WorkerWrapper(nameserver=nameserver, ns_port=ns)
         w.run(background=True)
 
-        CG = hpbandster.config_generators.RandomSampling(cs)
+        CG = RandomSampling(cs)
 
         # instantiating Hyperband with some minimal configuration
-        HB = hpbandster.HB_master.HpBandSter(
+        HB = HpBandSter(
             config_generator=CG,
             run_id='0',
             eta=2,  # defines downsampling rate
             min_budget=1,  # minimum number of epochs / minimum budget
-            max_budget=127,  # maximum number of epochs / maximum budget
+            max_budget=10,  # maximum number of epochs / maximum budget
             nameserver=nameserver,
             ns_port=ns,
             job_queue_sizes=(0, 1),
