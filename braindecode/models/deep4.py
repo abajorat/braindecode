@@ -1,11 +1,12 @@
 import numpy as np
 from torch import nn
 from torch.nn import init
+from torch.nn import functional
 from torch.nn.functional import elu
 from braindecode.torch_ext.modules import Expression, AvgPool2dWithConv
 from braindecode.torch_ext.functions import identity
+from braindecode.torch_ext import functions
 from braindecode.torch_ext.util import np_to_var
-
 
 class Deep4Net(object):
     """
@@ -24,6 +25,7 @@ class Deep4Net(object):
                  n_classes,
                  input_time_length,
                  final_conv_length,
+                 config_space,
                  n_filters_time=25,
                  n_filters_spat=25,
                  filter_time_length=10,
@@ -46,7 +48,30 @@ class Deep4Net(object):
                  split_first_layer=True,
                  batch_norm=True,
                  batch_norm_alpha=0.1,
-                 stride_before_pool=False):
+                 stride_before_pool=False,
+                ):
+        n_filters_time = config_space['n_filters_time']
+        n_filters_spat = config_space['n_filters_spat']
+        filter_time_length = config_space['filter_time_length']
+        pool_time_length = config_space['pool_time_length']
+        pool_time_stride = config_space['pool_time_stride']
+        n_filters_2 = config_space['n_filters_2']
+        n_filters_3 = config_space['n_filters_3']
+        n_filters_4 = config_space['n_filters_4']
+        filter_length_2 = config_space['filter_length_2']
+        filter_length_3 = config_space['filter_length_3']
+        filter_length_4 = config_space['filter_length_4']
+        first_nonlin = getattr(functional, config_space['first_nonlin'])
+        first_pool_mode = config_space['first_pool_mode']
+        first_pool_nonlin = getattr(functions, config_space['first_pool_nonlin'])
+        later_pool_mode = config_space['later_pool_mode']
+        later_nonlin = getattr(functional, config_space['later_nonlin'])
+        later_pool_nonlin = getattr(functions, config_space['later_pool_nonlin'])
+        drop_prob = config_space['drop_prob']
+        split_first_layer = config_space['split_first_layer']
+        batch_norm = config_space['batch_norm']
+        batch_norm_alpha = config_space['batch_norm_alpha']
+        stride_before_pool = config_space['stride_before_pool']
         if final_conv_length == 'auto':
             assert input_time_length is not None
 

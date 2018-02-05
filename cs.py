@@ -8,7 +8,7 @@ def create_config_space():
                                                  lower=20,
                                                  default_value=25,
                                                  upper=70)
-    n_filters_spat = CS.UniformIntegerHyperparameter("n_filters_time",
+    n_filters_spat = CS.UniformIntegerHyperparameter("n_filters_spat",
                                                   lower=20,
                                                   default_value=25,
                                                   upper=70,
@@ -33,7 +33,7 @@ def create_config_space():
                                                   default_value=50,
                                                   upper=265,
                                                   log=True)
-    fliter_length_2 = CS.UniformIntegerHyperparameter("filter_length_2",
+    filter_length_2 = CS.UniformIntegerHyperparameter("filter_length_2",
                                                   lower=3,
                                                   default_value=10,
                                                   upper=14,
@@ -43,7 +43,7 @@ def create_config_space():
                                                   default_value=100,
                                                   upper=265,
                                                   log=True)
-    fliter_length_3 = CS.UniformIntegerHyperparameter("filter_length_3",
+    filter_length_3 = CS.UniformIntegerHyperparameter("filter_length_3",
                                                   lower=3,
                                                   default_value=10,
                                                   upper=14,
@@ -53,7 +53,7 @@ def create_config_space():
                                                   default_value=200,
                                                   upper=265,
                                                   log=True)
-    fliter_length_4 = CS.UniformIntegerHyperparameter("filter_length_4",
+    filter_length_4 = CS.UniformIntegerHyperparameter("filter_length_4",
                                                   lower=3,
                                                   default_value=10,
                                                   upper=14,
@@ -77,7 +77,12 @@ def create_config_space():
                                                   default_value=0.1,
                                                   upper=0.9,
                                                   log=False)
+    model = CS.CategoricalHyperparameter("model", ['deep'])
+
+
+    cs.add_hyperparameter(model)
     cs.add_hyperparameter(n_filters_time)
+    cs.add_hyperparameter(n_filters_spat)
     cs.add_hyperparameter(filter_time_length)
     cs.add_hyperparameter(pool_time_length)
     cs.add_hyperparameter(pool_time_stride)
@@ -96,15 +101,12 @@ def create_config_space():
     cs.add_hyperparameter(drop_prob)
     cs.add_hyperparameter(split_first_layer)
     cs.add_hyperparameter(batch_norm)
+    cs.add_hyperparameter(batch_norm_alpha)
     cs.add_hyperparameter(stride_before_pool)
 
-	
-    cond1 = CS.EqualsCondition(input_time_length, final_conv_length, "?")
     cond2 = CS.EqualsCondition(n_filters_spat, split_first_layer, "True")
     cond3 = CS.EqualsCondition(batch_norm_alpha, batch_norm, "True")
 
-    cs.add_condition(cond1)
     cs.add_condition(cond2)
     cs.add_condition(cond3)
-	
     return cs

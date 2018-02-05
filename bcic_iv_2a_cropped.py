@@ -8,7 +8,7 @@ import sys
 import torch.nn.functional as F
 from torch import optim
 import torch as th
-
+import cs
 from braindecode.models.deep4 import Deep4Net
 from braindecode.models.util import to_dense_prediction_model
 from braindecode.datasets.bcic_iv_2a import BCICompetition4Set2A
@@ -17,7 +17,7 @@ from braindecode.experiments.monitors import LossMonitor, MisclassMonitor, \
     RuntimeMonitor, CroppedTrialMisclassMonitor
 from braindecode.experiments.stopcriteria import MaxEpochs, NoDecrease, Or
 from braindecode.datautil.iterators import CropsFromTrialsIterator
-from braindecode.models.shallow_fbcsp import ShallowFBCSPNet
+# from braindecode.models.shallow_fbcsp import ShallowFBCSPNet
 from braindecode.datautil.splitters import split_into_two_sets
 from braindecode.torch_ext.constraints import MaxNormDefaultConstraint
 from braindecode.torch_ext.util import set_random_seeds, np_to_var
@@ -95,14 +95,13 @@ def preprocessing(data_folder, subject_id, low_cut_hz):
 def train(config_space):
     cuda = False
     model = config_space['model']
-    print("Bla")
-    if model == 'shallow':
-        model = ShallowFBCSPNet(n_chans, n_classes, input_time_length=input_time_length,
-                            final_conv_length=30).create_network()
-    elif model == 'deep':
-        model = Deep4Net(n_chans, n_classes, input_time_length=input_time_length,
-                            final_conv_length=2).create_network()
 
+    # if model == 'shallow':
+        # model = ShallowFBCSPNet(n_chans, n_classes, input_time_length=input_time_length,
+                            # final_conv_length=30).create_network()
+    if model == 'deep':
+        model = Deep4Net(n_chans, n_classes, input_time_length=input_time_length,
+                            final_conv_length=2, config_space=config_space).create_network()
 
     to_dense_prediction_model(model)
     if cuda:
@@ -161,7 +160,7 @@ if __name__ == '__main__':
     model = 'shallow' #'shallow' or 'deep'
     cuda = True
     preprocessing(data_folder, subject_id, low_cut_hz)
-    cs = createCS()
+    cs = cs.create_config_space()
     scenario = Scenario({"run_obj": "quality",
                          "runcount-limit": n_iters,
                          "cs": cs,
