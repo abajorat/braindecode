@@ -24,6 +24,8 @@ from braindecode.torch_ext.util import set_random_seeds, np_to_var
 from braindecode.mne_ext.signalproc import mne_apply
 from braindecode.datautil.signalproc import (bandpass_cnt,
                                              exponential_running_standardize)
+import hpbandster.distributed.utils
+from hpbandster.distributed.worker import Worker
 from braindecode.datautil.trial_segment import create_signal_target_from_raw_mne
 import ConfigSpace as CS
 from smac.facade.smac_facade import SMAC
@@ -34,7 +36,7 @@ log = logging.getLogger(__name__)
 def preprocessing(data_folder, subject_id, low_cut_hz):
     global train_set, test_set, valid_set, n_classes, n_chans
     global n_iters, input_time_length
-    n_iters = 5
+    n_iters = 50
 # def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
     train_filename = 'A{:02d}T.gdf'.format(subject_id)
     test_filename = 'A{:02d}E.gdf'.format(subject_id)
@@ -150,6 +152,13 @@ def createCS():
     cs.add_hyperparameter(model)
     return cs
 
+class WorkerWrapper(Worker):
+    def compute(self, config, budget, *args, **kwargs):
+        loss = train(cs)
+
+        return ({
+            'loss': loss}
+        )
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s : %(message)s',
                         level=logging.DEBUG, stream=sys.stdout)
@@ -161,14 +170,45 @@ if __name__ == '__main__':
     cuda = True
     preprocessing(data_folder, subject_id, low_cut_hz)
     cs = cs.create_config_space()
-    scenario = Scenario({"run_obj": "quality",
+    if False:
+        scenario = Scenario({"run_obj": "quality",
                          "runcount-limit": n_iters,
                          "cs": cs,
                          "deterministic": "true",
                          "output_dir": ""})
 
-    smac = SMAC(scenario=scenario, tae_runner=train)
-    smac.optimize()
+        smac = SMAC(scenario=scenario, tae_runner=train)
+        smac.optimize()
+    else:
+        nameserver, ns = hpbandster.distributed.utils.start_local_nameserver()
+
+        # starting the worker in a separate thread
+        w = WorkerWrapper(nameserver=nameserver, ns_port=ns)
+        w.run(background=True)
+
+        CG = hpbandster.config_generators.RandomSampling(cs)
+
+        # instantiating Hyperband with some minimal configuration
+        HB = hpbandster.HB_master.HpBandSter(
+            config_generator=CG,
+            run_id='0',
+            eta=2,  # defines downsampling rate
+            min_budget=1,  # minimum number of epochs / minimum budget
+            max_budget=127,  # maximum number of epochs / maximum budget
+            nameserver=nameserver,
+            ns_port=ns,
+            job_queue_sizes=(0, 1),
+        )
+        # runs one iteration if at least one worker is available
+        res = HB.run(10, min_n_workers=1)
+
+        # shutdown the worker and the dispatcher
+        HB.shutdown(shutdown_workers=True)
+
+        # extract incumbent trajectory and all evaluated learning curves
+        traj = res.get_incumbent_trajectory()
+        wall_clock_time = []
+        cum_time = 0
     # exp = train(cs)
     # log.info("Last 10 epochs")
     # log.info("\n" + str(exp.epochs_df.iloc[-10:]))
