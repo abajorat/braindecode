@@ -68,7 +68,7 @@ class Deep4Net(object):
         later_nonlin = getattr(functional, config_space['later_nonlin'])
         later_pool_nonlin = getattr(functions, config_space['later_pool_nonlin'])
         drop_prob = config_space['drop_prob']
-        split_first_layer = config_space['split_first_layer']
+        # split_first_layer = config_space['split_first_layer']
         batch_norm = config_space['batch_norm']
         batch_norm_alpha = config_space['batch_norm_alpha']
         stride_before_pool = config_space['stride_before_pool']
