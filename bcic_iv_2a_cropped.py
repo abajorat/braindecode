@@ -38,7 +38,7 @@ log = logging.getLogger(__name__)
 def preprocessing(data_folder, subject_id, low_cut_hz):
     global train_set, test_set, valid_set, n_classes, n_chans
     global n_iters, input_time_length
-    n_iters = 50
+    n_iters = 5000
 # def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
     train_filename = 'A{:02d}T.gdf'.format(subject_id)
     test_filename = 'A{:02d}E.gdf'.format(subject_id)
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     cuda = True
     preprocessing(data_folder, subject_id, low_cut_hz)
     cs = cs.create_config_space()
-    if False:
+    if True:
         scenario = Scenario({"run_obj": "quality",
                          "runcount-limit": n_iters,
                          "cs": cs,
