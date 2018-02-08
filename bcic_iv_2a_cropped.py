@@ -24,12 +24,7 @@ from braindecode.torch_ext.util import set_random_seeds, np_to_var
 from braindecode.mne_ext.signalproc import mne_apply
 from braindecode.datautil.signalproc import (bandpass_cnt,
                                              exponential_running_standardize)
-from hpbandster.distributed import utils
-from hpbandster.config_generators import RandomSampling
-from hpbandster.HB_master import HpBandSter
-from hpbandster.distributed.worker import Worker
 from braindecode.datautil.trial_segment import create_signal_target_from_raw_mne
-import ConfigSpace as CS
 from smac.facade.smac_facade import SMAC
 from smac.scenario.scenario import Scenario
 log = logging.getLogger(__name__)
@@ -39,7 +34,6 @@ def preprocessing(data_folder, subject_id, low_cut_hz):
     global train_set, test_set, valid_set, n_classes, n_chans
     global n_iters, input_time_length
     n_iters = 5000
-# def run_exp(data_folder, subject_id, low_cut_hz, model, cuda):
     train_filename = 'A{:02d}T.gdf'.format(subject_id)
     test_filename = 'A{:02d}E.gdf'.format(subject_id)
     train_filepath = os.path.join(data_folder, train_filename)
@@ -99,10 +93,6 @@ def preprocessing(data_folder, subject_id, low_cut_hz):
 def train(config):
     cuda = True
     model = config['model']
-
-    # if model == 'shallow':
-        # model = ShallowFBCSPNet(n_chans, n_classes, input_time_length=input_time_length,
-                            # final_conv_length=30).create_network()
     if model == 'deep':
         model = Deep4Net(n_chans, n_classes, input_time_length=input_time_length,
                             final_conv_length=2, config=config).create_network()
@@ -146,67 +136,23 @@ def train(config):
                      run_after_early_stop=True, cuda=cuda)
     exp.run()
     print(exp.rememberer)
-    # return exp, {"cost": exp.rememberer.lowest_val}
     return exp.rememberer.lowest_val
 
-
-class WorkerWrapper(Worker):
-    def compute(self, config, budget, *args, **kwargs):
-        cfg = CS.Configuration(cs, values=config)
-        loss = train(cfg)
-
-        return ({
-            'loss': loss}
-        )
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s : %(message)s',
                         level=logging.DEBUG, stream=sys.stdout)
-    # Should contain both .gdf files and .mat-labelfiles from competition
     data_folder = '/home/andresp/braindecode/data/'
-    subject_id = 1 # 1-9
-    low_cut_hz = 4 # 0 or 4
+    subject_id = 1
+    low_cut_hz = 4
     cuda = True
     preprocessing(data_folder, subject_id, low_cut_hz)
     cs = cs.create_config_space()
-    if True:
-        scenario = Scenario({"run_obj": "quality",
-                         "runcount-limit": n_iters,
-                         "cs": cs,
-                         "deterministic": "true",
-                         "output_dir": ""})
+    scenario = Scenario({"run_obj": "quality",
+                     "runcount-limit": n_iters,
+                     "cs": cs,
+                     "deterministic": "true",
+                     "output_dir": ""})
 
-        smac = SMAC(scenario=scenario, tae_runner=train)
-        smac.optimize()
-    else:
-        nameserver, ns = utils.start_local_nameserver()
+    smac = SMAC(scenario=scenario, tae_runner=train)
+    smac.optimize()
 
-        # starting the worker in a separate thread
-        w = WorkerWrapper(nameserver=nameserver, ns_port=ns)
-        w.run(background=True)
-
-        CG = RandomSampling(cs)
-
-        # instantiating Hyperband with some minimal configuration
-        HB = HpBandSter(
-            config_generator=CG,
-            run_id='0',
-            eta=2,  # defines downsampling rate
-            min_budget=1,  # minimum number of epochs / minimum budget
-            max_budget=127,  # maximum number of epochs / maximum budget
-            nameserver=nameserver,
-            ns_port=ns,
-            job_queue_sizes=(0, 1),
-        )
-        # runs one iteration if at least one worker is available
-        res = HB.run(1, min_n_workers=1)
-
-        # shutdown the worker and the dispatcher
-        HB.shutdown(shutdown_workers=True)
-
-        # extract incumbent trajectory and all evaluated learning curves
-        traj = res.get_incumbent_trajectory()
-        wall_clock_time = []
-        cum_time = 0
-    # exp = train(cs)
-    # log.info("Last 10 epochs")
-    # log.info("\n" + str(exp.epochs_df.iloc[-10:]))
